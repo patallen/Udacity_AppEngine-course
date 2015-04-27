@@ -96,9 +96,23 @@ class ConferenceApi(remote.Service):
                 data[df] = DEFAULTS[df]
                 setattr(request, df, DEFAULTS[df])
 
-        # Make Profile Key from user ID
+        if data['startDate']:
+            data['startDate'] = datetime.strptime(data['startDate'][:10], "%Y-%m-%d").date()
+            data['month'] = data['startDate'].month
+        else:
+            data['month'] = 0
+        if data['endDate']:
+            data['endDate'] = datetime.strptime(data['endDate'][:10], "%Y-%m-%d").date()
+
+        # set seatsAvailable to be same as maxAttendees on creation
+        # both for data model & outbound Message
+        if data["maxAttendees"] > 0:
+            data["seatsAvailable"] = data["maxAttendees"]
+            setattr(request, "seatsAvailable", data["maxAttendees"])
+
+        # make Profile Key from user ID
         p_key = ndb.Key(Profile, user_id)
-        # Allocate new Conference ID with Profile key as parent
+        # allocate new Conference ID with Profile key as parent
         c_id = Conference.allocate_ids(size=1, parent=p_key)[0]
         # make Conference key from ID
         c_key = ndb.Key(Conference, c_id, parent=p_key)
@@ -107,8 +121,8 @@ class ConferenceApi(remote.Service):
 
         # create Conference & return (modified) ConferenceForm
         Conference(**data).put()
-        return request 
 
+        return request
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
 
     def _copyProfileToForm(self, prof):
