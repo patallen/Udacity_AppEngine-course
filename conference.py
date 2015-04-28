@@ -28,6 +28,9 @@ from google.appengine.ext import ndb
 
 from models import Conference
 from models import ConferenceForm
+from models import ConferenceForms
+from models import ConferenceQueryForms
+from models import ConferenceQueryForm
 from models import Profile
 from models import ProfileMiniForm
 from models import ProfileForm
@@ -58,7 +61,7 @@ class ConferenceApi(remote.Service):
 
 # - - - Conference Objects- - - - - - - - - - - - - - - - - -
 
-    def _copyConferenceToForm(self, conf):
+    def _copyConferenceToForm(self, conf, displayName):
         """Copy relevant fields from Conference to ConferenceForm"""
         cf = ConferenceForm()
         for field in cf.all_fields():
@@ -123,6 +126,18 @@ class ConferenceApi(remote.Service):
         Conference(**data).put()
 
         return request
+
+    @endpoints.method(ConferenceQueryForms, ConferenceForms,
+                      path='queryConferences',
+                      http_method='POST',
+                      name='queryConferences')
+    def queryConferences(self, request):
+        """Query for conferences."""
+        conferences = Conference.query()
+
+        return ConferenceForms(
+            items=[self._copyConferenceToForm(conf, "") for conf in conferences]
+        )
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
 
     def _copyProfileToForm(self, prof):
