@@ -162,16 +162,9 @@ class ConferenceApi(remote.Service):
     def filterPlayground(self, request):
         """Playing around with filters"""
 
-        q = Conference.query()
+        q = Conference.query().filter(Conference.city == 'Tokyo').filter(Conference.seatsAvailable < 10).filter(Conference.seatsAvailable > 0).order(
 
-        q = q.filter(Conference.city == 'London')
-
-        q = q.filter(Conference.topics == "Medicali Innovations")
-
-        q = q.order(Conference.name)
-
-        q = q.filter(Conference.month == 6)
-
+        
         return ConferenceForms(
             items=[self._copyConferenceToForm(conf, "") for conf in q]
         )
