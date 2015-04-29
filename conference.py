@@ -127,6 +127,7 @@ class ConferenceApi(remote.Service):
 
         return request
 
+
     @endpoints.method(ConferenceQueryForms, ConferenceForms,
                       path='queryConferences',
                       http_method='POST',
@@ -138,6 +139,22 @@ class ConferenceApi(remote.Service):
         return ConferenceForms(
             items=[self._copyConferenceToForm(conf, "") for conf in conferences]
         )
+
+
+    @endpoints.method(message_types.VoidMessage, ConferenceForms,
+                      path='queryConferencesCreated',
+                      http_method='GET',
+                      name='queryConferencesCreated')
+    def queryConferencesCreated(self, request):
+        """Query for conferences created by the user."""
+        user = endpoints.get_current_user()
+        if not user:
+            raise endpoints.UnauthorizedException('Authorization required')
+        conferences = Conference.query(ancestor= ndb.Key(Profile, getUserId(user)))
+        return ConferenceForms(
+            items=[self._copyConferenceToForm(conf, "") for conf in conferences]
+        )
+
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
 
     def _copyProfileToForm(self, prof):
