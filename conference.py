@@ -142,15 +142,27 @@ class ConferenceApi(remote.Service):
 
 
     @endpoints.method(message_types.VoidMessage, ConferenceForms,
-                      path='queryConferencesCreated',
-                      http_method='GET',
-                      name='queryConferencesCreated')
-    def queryConferencesCreated(self, request):
+                      path='getConferencesCreated',
+                      http_method='POST',
+                      name='getConferencesCreated')
+    def getConferencesCreated(self, request):
         """Query for conferences created by the user."""
         user = endpoints.get_current_user()
         if not user:
             raise endpoints.UnauthorizedException('Authorization required')
         conferences = Conference.query(ancestor= ndb.Key(Profile, getUserId(user)))
+        return ConferenceForms(
+            items=[self._copyConferenceToForm(conf, "") for conf in conferences]
+        )
+
+    @endpoints.method(message_types.VoidMessage, ConferenceForms,
+                      path="filterPlayground",
+                      http_method='POST',
+                      name='flilterPlayground',)
+    def filterPlayground(self, request):
+        """Playing around with filters"""
+
+        conferences = Conference.query(Conference.city=='London')
         return ConferenceForms(
             items=[self._copyConferenceToForm(conf, "") for conf in conferences]
         )
