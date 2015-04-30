@@ -277,6 +277,21 @@ class ConferenceApi(remote.Service):
         )
 
 
+    @endpoints.method(CONF_GET_REQUEST, ConferenceForm,
+            path='conference/{websafeConferenceKey}',
+            http_method='GET', name='getConference')
+    def getConference(self, request):
+        """Return requested conference (by websafeConferenceKey)."""
+        # get Conference object from request; bail if not found
+        conf = ndb.Key(urlsafe=request.websafeConferenceKey).get()
+        if not conf:
+            raise endpoints.NotFoundException(
+                'No conference found with key: %s' % request.websafeConferenceKey)
+        prof = conf.key.parent().get()
+        # return ConferenceForm
+        return self._copyConferenceToForm(conf, getattr(prof, 'displayName'))
+
+
     @endpoints.method(message_types.VoidMessage, ConferenceForms,
                       path='getConferencesCreated',
                       http_method='POST',
@@ -289,20 +304,6 @@ class ConferenceApi(remote.Service):
         conferences = Conference.query(ancestor= ndb.Key(Profile, getUserId(user)))
         return ConferenceForms(
             items=[self._copyConferenceToForm(conf, "") for conf in conferences]
-        )
-
-    @endpoints.method(message_types.VoidMessage, ConferenceForms,
-                      path="filterPlayground",
-                      http_method='POST',
-                      name='flilterPlayground',)
-    def filterPlayground(self, request):
-        """Playing around with filters"""
-
-        q = Conference.query().filter(Conference.city == 'Tokyo').filter(Conference.seatsAvailable < 10).filter(Conference.seatsAvailable > 0)
-
-        
-        return ConferenceForms(
-            items=[self._copyConferenceToForm(conf, "") for conf in q]
         )
 
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
