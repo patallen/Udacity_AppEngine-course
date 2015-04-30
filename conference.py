@@ -136,6 +136,14 @@ class ConferenceApi(remote.Service):
         return self._conferenceRegistration(request)
 
 
+    @endpoints.method(CONF_GET_REQUEST, BooleanMessage,
+                      path='conference/{websafeConferenceKey}',
+                      http_method='DELETE', name='unregisterFromConference')
+    def unregisterFromConference(self, request):
+        """Register user for selected conference."""
+        return self._conferenceRegistration(request, reg=False)
+
+
     @endpoints.method(message_types.VoidMessage, ConferenceForms,
                 path='conferences/attending',
                 http_method='GET', name='getConferencesToAttend')

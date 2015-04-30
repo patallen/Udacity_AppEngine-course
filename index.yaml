@@ -16,3 +16,8 @@ indexes:
   - name: month
   - name: topics
   - name: name
+
+- kind: Conference
+  properties:
+  - name: maxAttendees
+  - name: name
