@@ -127,12 +127,27 @@ class ConferenceApi(remote.Service):
         conf.put()
         return BooleanMessage(data=retval)
 
+
     @endpoints.method(CONF_GET_REQUEST, BooleanMessage,
                       path='conference/{websafeConferenceKey}',
                       http_method='post', name='registerForConference')
     def registerForConference(self, request):
         """Register user for selected confereence."""
         return self._conferenceRegistration(request)
+
+
+    @endpoints.method(message_types.VoidMessage, ConferenceForms,
+                path='conferences/attending',
+                http_method='GET', name='getConferencesToAttend')
+    def getConferencesToAttend(self, request):
+        """Get list of conferences that user has registered for."""
+        profile = self._getProfileFromUser()
+        userConfKeys = profile.conferenceKeysToAttend
+        keys = [ndb.Key(urlsafe=key) for key in userConfKeys]
+        conferences = ndb.get_multi(keys)
+        return ConferenceForms(
+                items=[self._copyConferenceToForm(conf, "") for conf in conferences]
+        )
 
 # - - - Conference Objects- - - - - - - - - - - - - - - - - -
 
