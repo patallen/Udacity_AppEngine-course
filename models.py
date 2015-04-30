@@ -97,6 +97,11 @@ class ProfileForm(messages.Message):
     teeShirtSize = messages.EnumField('TeeShirtSize', 4)
 
 
+class StringMessage(messages.Message):
+    """StringMessage -- outbound (single) string message"""
+    data = messages.StringField(1, required=True)
+
+
 class TeeShirtSize(messages.Enum):
     """TeeShirtSize -- t-shirt size enumeration value"""
     NOT_SPECIFIED = 1

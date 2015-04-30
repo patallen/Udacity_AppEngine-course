@@ -21,3 +21,8 @@ indexes:
   properties:
   - name: maxAttendees
   - name: name
+
+- kind: Conference
+  properties:
+  - name: seatsAvailable
+  - name: name
