@@ -26,6 +26,7 @@ from protorpc import remote
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 from google.appengine.api import memcache
+from google.appengine.api import taskqueue
 
 from models import BooleanMessage
 from models import ConflictException
@@ -226,6 +227,9 @@ class ConferenceApi(remote.Service):
 
         # create Conference & return (modified) ConferenceForm
         Conference(**data).put()
+        taskqueue.add(params={'email': user.email(),
+            'conferenceInfo': repr(request)},
+            url='/tasks/send_confirmation_email')
 
         return request
 
@@ -374,7 +378,7 @@ class ConferenceApi(remote.Service):
 
     @endpoints.method(ConferenceForm, ConferenceForm, path='conference',
                       http_method='POST', name='createConference')
-    def createConference(self, request):
+    def createConference(self, request): 
         return self._createConferenceObject(request)
 
 
