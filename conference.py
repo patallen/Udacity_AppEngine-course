@@ -1,48 +1,14 @@
-#!/usr/bin/env python
-
-"""
-conference.py -- Udacity conference server-side Python App Engine API;
-    uses Google Cloud Endpoints
-
-$Id: conference.py,v 1.25 2014/05/24 23:42:19 wesc Exp wesc $
-
-created by wesc on 2014 apr 21
-
-"""
-
-__author__ = 'wesc+api@google.com (Wesley Chun)'
-
-
 from datetime import datetime
 import json
 import os
 import time
 
 import endpoints
-from protorpc import messages
-from protorpc import message_types
-from protorpc import remote
-
-from google.appengine.api import urlfetch
+from protorpc import messages, message_types, remote
+from google.appengine.api import urlfetch, memcache, taskqueue
 from google.appengine.ext import ndb
-from google.appengine.api import memcache
-from google.appengine.api import taskqueue
-
-from models import BooleanMessage
-from models import ConflictException
-from models import Conference
-from models import ConferenceForm
-from models import ConferenceForms
-from models import ConferenceQueryForms
-from models import ConferenceQueryForm
-from models import Profile
-from models import ProfileMiniForm
-from models import ProfileForm
-from models import StringMessage
-from models import TeeShirtSize
-
+from models import *
 from settings import WEB_CLIENT_ID
-
 from utils  import getUserId 
 
 EMAIL_SCOPE = endpoints.EMAIL_SCOPE
@@ -50,6 +16,10 @@ API_EXPLORER_CLIENT_ID = endpoints.API_EXPLORER_CLIENT_ID
 
 CONF_GET_REQUEST = endpoints.ResourceContainer(
     message_types.VoidMessage,
+    websafeConferenceKey = messages.StringField(1),
+)
+SESH_POST_REQUEST = endpoints.ResourceContainer(
+    SessionForm,
     websafeConferenceKey = messages.StringField(1),
 )
 
@@ -78,7 +48,7 @@ FIELDS =    {
             'MAX_ATTENDEES': 'maxAttendees',
             }
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+################################################################
 
 @endpoints.api( name='conference',
                 version='v1',
@@ -86,8 +56,75 @@ FIELDS =    {
                 scopes=[EMAIL_SCOPE])
 class ConferenceApi(remote.Service):
     """Conference API v0.1"""
-# - - - Registration - - - - - - - - - - - - - - - - - - - -
 
+# - - - Sessions - - - - - - - - - - - - - - - - - - - - - -
+    # def _copySessionToForm(self, sesh):
+
+    # @endpoints.method(CONF_GET_REQUEST, SessionForms, 
+    #                   path='sessions/{websafeConferenceKey}'
+    #                   http_method='GET', name='getConferenceSessions')
+    # def getConferenceSessions(self, request):
+    #     """Given a conference, return all sessions"""
+    #     pass
+
+    # @endpoints.method()
+    # def getConferenceSessionsByType(self, websafeConferenceKey, typeOfSession):
+    #     """Given a conference, return all sessions of a specified type"""
+    #     pass
+
+    # @endpoints.method()
+    # def getSessionsBySpeaker(self, speaker):
+    #     """Given a speaker, return all sessions given by the speaker, across all conferences"""
+    #     pass
+
+
+    def _copySessionToForm(self, sesh):
+        """Copy all relevant fields from Session to SessionForm."""
+        sf = SessionForm()
+        for field in sf.all_fields():
+            if hasattr(sesh, field.name):
+                if field.name == 'date':
+                    setattr(sf, field.name, str(getattr(sesh, field.name)))
+                else:
+                    setattr(sf, field.name, getattr(sesh, field.name))
+            elif field.name == "websafeKey":
+                setattr(sf, field.name, sesh.key.urlsafe())
+        sf.check_initialized()
+        return sf
+
+
+    def _createSession(self, request):
+        c_key = ndb.Key(urlsafe=request.websafeConferenceKey)
+        conf = c_key.get()
+        if conf.organizerUserId != getUserId(endpoints.get_current_user()):
+            raise endpoints.ForbiddenException(
+                'You must be the organizer to create a session.')
+        s_id = Session.allocate_ids(size=1, parent=c_key)[0]
+        s_key = ndb.Key(Session, s_id, parent=c_key)
+        session = Session()
+        session.key = s_key
+        for field in request.all_fields():
+            data = getattr(request, field.name)
+            # only copy fields where we get data
+            if data not in (None, []):
+                # special handling for dates (convert string to Date)
+                if field.name == 'date':
+                    data = datetime.strptime(data, "%Y-%m-%d").date()
+                # write to Conference object
+                setattr(session, field.name, data)
+        session.put()
+        return self._copySessionToForm(session)
+
+
+    @endpoints.method(SESH_POST_REQUEST, SessionForm,
+                      path='session/add/{websafeConferenceKey}',
+                      http_method='POST', name='createSession')
+    def createSession(self, request):
+        """Create a session if user is organizer of the conference"""
+        return self._createSession(request)
+
+
+# - - - Registration - - - - - - - - - - - - - - - - - - - -
     @ndb.transactional(xg=True)
     def _conferenceRegistration(self, request, reg=True):
         """Register or unregister user for selected conference."""
