@@ -143,3 +143,11 @@ class SessionForm(messages.Message):
 class SessionForms(messages.Message):
     """SessionForms -- multiple Sessions outbound form message"""
     items = messages.MessageField(SessionForm, 1, repeated=True)
+
+class SessionType(messages.Enum):
+    """SessionType -- session type enumeration value"""
+    NOT_SPECIFIED = 1 
+    KEYNOTE = 2  
+    LECTURE = 3 
+    WORKSHOP = 4 
+    FREEFORM = 5 
